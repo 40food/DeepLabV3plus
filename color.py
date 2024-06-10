@@ -1,3 +1,5 @@
+#예측에 사용할 컬러맵을 만드는 코드
+
 # Loading the Colormap
 # from scipy.io import loadmat
 import numpy as np

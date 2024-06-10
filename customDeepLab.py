@@ -1,3 +1,5 @@
+#custom 알고리즘
+
 """
 Title: Multiclass semantic segmentation using DeepLabV3+
 =DeepLabV3+를 사용한 멀티 클래스 semantic segmentation
@@ -47,19 +49,10 @@ from tensorflow import image as tf_image
 from tensorflow import data as tf_data
 from tensorflow import io as tf_io
 
-"""shell
-gdown "1B9A9UCJYMwTL4oBEo4RZfbMZMaZhKJaz&confirm=t"
-unzip -q instance-level-human-parsing.zip
-"""
-"""
-## Creating a TensorFlow Dataset
-Training on the entire CIHP dataset with 38,280 images takes a lot of time, hence we will be using
-a smaller subset of 200 images for training our model in this example.
-"""
-
-IMAGE_SIZE = 512
-EPOCH=1
-BATCH_SIZE = 50 #데이터 \을 여러 작은 그룹으로 나눌 때 하나의 소그룹에 속하는 데이터 수
+'''필요 변수들'''
+IMAGE_SIZE = 512 #이미지 사이즈
+EPOCH=1 #EPOCH: 모든 데이터셋을 학습하는 횟수
+BATCH_SIZE = 10 #데이터 \을 여러 작은 그룹으로 나눌 때 하나의 소그룹에 속하는 데이터 수
 NUM_CLASSES = 6
 DATA_DIR = "pole_data"
 export_path = "Model/10Epoch10BatchExport.h5"
@@ -67,9 +60,8 @@ export_path = "Model/10Epoch10BatchExport.h5"
 # NUM_VAL_IMAGES = 185
 NUM_TRAIN_IMAGES = 1500
 NUM_VAL_IMAGES = 355
-#EPOCH: 모든 데이터셋을 학습하는 횟수
 
-#이미지와 마스크 리스트 가져오기
+'''이미지와 마스크 리스트 가져오기'''
 train_images = sorted(glob(os.path.join(DATA_DIR, "Train/JPEGImages/*")))[:NUM_TRAIN_IMAGES]
 train_masks = sorted(glob(os.path.join(DATA_DIR, "Train/Mask/*")))[:NUM_TRAIN_IMAGES]
 val_images = sorted(glob(os.path.join(DATA_DIR, "Train/JPEGImages/*")))[
@@ -108,24 +100,7 @@ val_dataset = data_generator(val_images, val_masks)
 print("Train Dataset:", train_dataset)
 print("Val Dataset:", val_dataset)
 
-"""
-## Building the DeepLabV3+ model (DeepLabV3+모델 생성하기)
-
-DeepLabv3+ extends DeepLabv3 by adding an encoder-decoder structure. The encoder module
-processes multiscale contextual information by applying dilated convolution at multiple
-scales, while the decoder module refines the segmentation results along object boundaries.
-![](https://github.com/lattice-ai/DeepLabV3-Plus/raw/master/assets/deeplabv3_plus_diagram.png)
-
-**Dilated convolution:** With dilated convolution, as we go deeper in the network, we can keep the
-stride constant but with larger field-of-view without increasing the number of parameters
-or the amount of computation. Besides, it enables larger output feature maps, which is
-useful for semantic segmentation.
-
-The reason for using **Dilated Spatial Pyramid Pooling** is that it was shown that as the
-sampling rate becomes larger, the number of valid filter weights (i.e., weights that
-are applied to the valid feature region, instead of padded zeros) becomes smaller.
-"""
-
+'''DeepLabV3+모델 생성하기'''
 
 def convolution_block(
     block_input,
@@ -164,16 +139,6 @@ def DilatedSpatialPyramidPooling(dspp_input):
     output = convolution_block(x, kernel_size=1)
     return output
 
-
-"""
-The encoder features are first bilinearly upsampled by a factor 4, and then
-concatenated with the corresponding low-level features from the network backbone that
-have the same spatial resolution. For this example, we
-use a ResNet50 pretrained on ImageNet as the backbone model, and we use
-the low-level features from the `conv4_block6_2_relu` block of the backbone.
-"""
-
-
 #모델
 def DeeplabV3Plus(image_size, num_classes):
     model_input = keras.Input(shape=(image_size, image_size, 3))
@@ -205,16 +170,9 @@ def DeeplabV3Plus(image_size, num_classes):
 model = DeeplabV3Plus(image_size=IMAGE_SIZE, num_classes=NUM_CLASSES)
 model.summary()
 
-"""
-## Training
-
-We train the model using sparse categorical crossentropy as the loss function, and
-Adam as the optimizer.
-"""
-
+'''훈련'''
 loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 # loss=keras.losses.categorical_crossentropy
-# loss = keras.losses.SparseCategoricalCrossentropy
 model.compile(
     optimizer=keras.optimizers.Adam(learning_rate=0.001),
     loss=loss,
@@ -222,11 +180,14 @@ model.compile(
     metrics=["accuracy"],
 )
 
-# 본격적으로 훈련
 history = model.fit(
     train_dataset,
     validation_data=val_dataset,
     epochs=EPOCH)
+# history = model.fit( #원본
+#     train_dataset,
+#     validation_data=val_dataset,
+#     epochs=2)
 
 #훈련 중 측정한 매트릭으로 plot 작성
 plt.plot(history.history["loss"])
@@ -255,32 +216,12 @@ plt.show()
 
 model.save(export_path)
 
-"""
-## Inference using Colormap Overlay, 이미지에 마스크를 오버레이로 표시
-
-The raw predictions from the model represent a one-hot encoded tensor of shape `(N, 512, 512, 20)`
-where each one of the 20 channels is a binary mask corresponding to a predicted label.
-In order to visualize the results, we plot them as RGB segmentation masks where each pixel
-is represented by a unique color.npz corresponding to the particular label predicted. We can easily
-find the color.npz corresponding to each label from the `human_colormap.mat` file provided as part
-of the dataset. We would also plot an overlay of the RGB segmentation mask on the input image as
-this further helps us to identify the different categories present in the image more intuitively.
-"""
-
-# Loading the Colormap
-# colormap = loadmat(
-#     "Pole_color.npy"
-# )["colormap"]
-# colormap = colormap * 100
-# colormap = colormap.astype(np.uint8)
-
-
+'''이미지에 마스크를 오버레이로 표시'''
 def infer(model, image_tensor):
     predictions = model.predict(np.expand_dims((image_tensor), axis=0))
     predictions = np.squeeze(predictions)
     predictions = np.argmax(predictions, axis=2)
     return predictions
-
 
 def decode_segmentation_masks(mask, colormap, n_classes):
     unique_classes = np.unique(mask)
@@ -298,13 +239,11 @@ def decode_segmentation_masks(mask, colormap, n_classes):
     rgb = np.stack([r, g, b], axis=2)
     return rgb
 
-
 def get_overlay(image, colored_mask):
     image = keras.utils.array_to_img(image)
     image = np.array(image).astype(np.uint8)
     overlay = cv2.addWeighted(image, 0.35, colored_mask, 0.65, 0)
     return overlay
-
 
 def plot_samples_matplotlib(display_list, figsize=(5, 3)):
     _, axes = plt.subplots(nrows=1, ncols=len(display_list), figsize=figsize)
@@ -314,7 +253,6 @@ def plot_samples_matplotlib(display_list, figsize=(5, 3)):
         else:
             axes[i].imshow(display_list[i])
     plt.show()
-
 
 def plot_predictions(images_list, colormap, model):
     for image_file in images_list:
@@ -327,24 +265,10 @@ def plot_predictions(images_list, colormap, model):
         )
 
 
-"""
-### Inference on Train Images
-"""
+'''train 이미지에 적용'''
 colors=np.load('Pole_color.npy')
 plot_predictions(train_images[:4], colors, model=model)
 
-"""
-### Inference on Val Images
-
-You can use the trained model hosted on [Hugging Face Hub](https://huggingface.co/keras-io/deeplabv3p-resnet50)
-and try the demo on [Hugging Face Spaces](https://huggingface.co/spaces/keras-io/Human-Part-Segmentation).
-"""
+'''validation 이미지에 적용'''
 
 plot_predictions(val_images[:4], colors, model=model)
-
-"""
-총평: 간결한 코드고 설명도 잘 되어 있어서 활용하긴 좋지만 단점도 있어보인다.
-1. 체크포인트 저장을 따로 하지 않는 것 같다. > 나온 model을 저장하면 해결이 가능한가?
-2. 학습에 시간이 오래 걸린다. 에포크 10~15개 언저리 학습하는데 5시간 걸림. > 학습 이미지 양의 문제일지도 모름
-3. 컬러맵을 사용해서 오버레이를 한다 > 컬러맵은 통상적으로 쓰이는 것인가?
-"""

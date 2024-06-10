@@ -1,3 +1,5 @@
+#roboflow에서 데이터를 받는 코드
+
 #pip install roboflow
 #pip install -r requirements.txt
 

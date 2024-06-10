@@ -1,3 +1,5 @@
+#학습 전에 Image와 Mask를 비교해 한 쪽에 없는 파일은 삭제하는 코드
+
 import os
 
 # folder1 = "pole_data/JPEGImages/"

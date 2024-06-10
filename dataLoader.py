@@ -1,16 +1,16 @@
+#RGB로 되어있는 Mask를 클래스 넘버로 mapping하는 코드
+
 import os
 from glob import glob
 import numpy as np
 import cv2
 
 DATA_DIR = "pole_data"
-# NUM_TRAIN_START = 1401
 NUM_TRAIN_IMAGES = 1500
-# NUM_VAL_START = 1601
 NUM_VAL_IMAGES = 500
 
 train_masks = sorted(glob(os.path.join(DATA_DIR, "Train/SegmentationClass/*")))[
-              1390:NUM_TRAIN_IMAGES]
+              :NUM_TRAIN_IMAGES]
 val_masks = sorted(glob(os.path.join(DATA_DIR, "Train/SegmentationClass/*")))[
               NUM_TRAIN_IMAGES:NUM_TRAIN_IMAGES+NUM_VAL_IMAGES]
 # val_masks = sorted(glob(os.path.join(DATA_DIR, "Val/SegmentationClass/*")))[
@@ -73,6 +73,6 @@ def rgb2mask2(img):
             pass
     return mask
 
-# mask=list(map(rgb2mask,train_masks))
+mask=list(map(rgb2mask,train_masks))
 mask=list(map(rgb2mask,val_masks))
-# mask2=list(map(rgb2mask2,val_masks))
+# mask2=list(map(rgb2mask2,val_masks)) #mask 폴더 분리 희망시 사용

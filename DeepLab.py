@@ -1,3 +1,5 @@
+#알고리즘 원본
+
 """
 Title: Multiclass semantic segmentation using DeepLabV3+
 =DeepLabV3+를 사용한 멀티 클래스 semantic segmentation
@@ -335,8 +337,12 @@ and try the demo on [Hugging Face Spaces](https://huggingface.co/spaces/keras-io
 plot_predictions(val_images[:4], colors, model=model)
 
 """
-총평: 간결한 코드고 설명도 잘 되어 있어서 활용하긴 좋지만 단점도 있어보인다.
-1. 체크포인트 저장을 따로 하지 않는 것 같다. > 나온 model을 저장하면 해결이 가능한가?
-2. 학습에 시간이 오래 걸린다. 에포크 10~15개 언저리 학습하는데 5시간 걸림. > 학습 이미지 양의 문제일지도 모름
-3. 컬러맵을 사용해서 오버레이를 한다 > 컬러맵은 통상적으로 쓰이는 것인가?
+중간 고사 즈음 코드 총평:
+  간결한 코드고 설명도 잘 되어 있어서 활용하긴 좋지만 단점도 있어보인다.
+1. 체크포인트 저장을 따로 하지 않는 것 같다.
+  > 해결
+2. 학습에 시간이 오래 걸린다. 에포크 10~15개 언저리 학습하는데 5시간 걸림.
+  > 학습 이미지 양의 문제일지도 모름 > 감안해도 오래걸린다
+3. 컬러맵을 사용해서 오버레이를 한다
+  > 해결
 """
