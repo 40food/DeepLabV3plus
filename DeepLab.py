@@ -58,25 +58,21 @@ a smaller subset of 200 images for training our model in this example.
 """
 
 IMAGE_SIZE = 512
-EPOCH=1
-BATCH_SIZE = 50 #데이터 \을 여러 작은 그룹으로 나눌 때 하나의 소그룹에 속하는 데이터 수
-NUM_CLASSES = 6
-DATA_DIR = "pole_data"
-export_path = "Model/10Epoch10BatchExport.h5"
-# NUM_TRAIN_IMAGES = 1855
-# NUM_VAL_IMAGES = 185
-NUM_TRAIN_IMAGES = 1500
-NUM_VAL_IMAGES = 355
+BATCH_SIZE = 4 #데이터 셋을 여러 작은 그룹으로 나눌 때 하나의 소그룹에 속하는 데이터 수
+NUM_CLASSES = 20
+DATA_DIR = "instance-level-human-parsing/instance-level_human_parsing/instance-level_human_parsing"
+NUM_TRAIN_IMAGES = 1000
+NUM_VAL_IMAGES = 50
 #EPOCH: 모든 데이터셋을 학습하는 횟수
 
 #이미지와 마스크 리스트 가져오기
-train_images = sorted(glob(os.path.join(DATA_DIR, "Train/JPEGImages/*")))[:NUM_TRAIN_IMAGES]
-train_masks = sorted(glob(os.path.join(DATA_DIR, "Train/Mask/*")))[:NUM_TRAIN_IMAGES]
-val_images = sorted(glob(os.path.join(DATA_DIR, "Train/JPEGImages/*")))[
-    NUM_TRAIN_IMAGES:NUM_TRAIN_IMAGES+NUM_VAL_IMAGES
+train_images = sorted(glob(os.path.join(DATA_DIR, "Training/Images/*")))[:NUM_TRAIN_IMAGES]
+train_masks = sorted(glob(os.path.join(DATA_DIR, "Training/Category_ids/*")))[:NUM_TRAIN_IMAGES]
+val_images = sorted(glob(os.path.join(DATA_DIR, "Validation/Images/*")))[
+    NUM_TRAIN_IMAGES : NUM_VAL_IMAGES + NUM_TRAIN_IMAGES
 ]
-val_masks = sorted(glob(os.path.join(DATA_DIR, "Train/Mask/*")))[
-    NUM_TRAIN_IMAGES:NUM_TRAIN_IMAGES+NUM_VAL_IMAGES
+val_masks = sorted(glob(os.path.join(DATA_DIR, "Validation/Category_ids/*")))[
+    NUM_TRAIN_IMAGES : NUM_VAL_IMAGES + NUM_TRAIN_IMAGES
 ]
 
 def read_image(image_path, mask=False):
@@ -91,10 +87,12 @@ def read_image(image_path, mask=False):
         image = tf_image.resize(images=image, size=[IMAGE_SIZE, IMAGE_SIZE])
     return image
 
+
 def load_data(image_list, mask_list):
     image = read_image(image_list)
     mask = read_image(mask_list, mask=True)
     return image, mask
+
 
 def data_generator(image_list, mask_list):
     dataset = tf_data.Dataset.from_tensor_slices((image_list, mask_list))
@@ -213,20 +211,17 @@ Adam as the optimizer.
 """
 
 loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-# loss=keras.losses.categorical_crossentropy
-# loss = keras.losses.SparseCategoricalCrossentropy
 model.compile(
     optimizer=keras.optimizers.Adam(learning_rate=0.001),
     loss=loss,
-    # loss="sparse_categorical_crossentropy",
     metrics=["accuracy"],
 )
 
-# 본격적으로 훈련
+#본격적으로 훈련
 history = model.fit(
     train_dataset,
     validation_data=val_dataset,
-    epochs=EPOCH)
+    epochs=10)
 
 #훈련 중 측정한 매트릭으로 plot 작성
 plt.plot(history.history["loss"])
@@ -253,7 +248,7 @@ plt.ylabel("val_accuracy")
 plt.xlabel("epoch")
 plt.show()
 
-model.save(export_path)
+# model.save(export_path)
 
 """
 ## Inference using Colormap Overlay, 이미지에 마스크를 오버레이로 표시
@@ -268,11 +263,11 @@ this further helps us to identify the different categories present in the image 
 """
 
 # Loading the Colormap
-# colormap = loadmat(
-#     "Pole_color.npy"
-# )["colormap"]
-# colormap = colormap * 100
-# colormap = colormap.astype(np.uint8)
+colormap = loadmat(
+    "instance-level-human-parsing/instance-level_human_parsing/instance-level_human_parsing/human_colormap.mat"
+)["colormap"]
+colormap = colormap * 100
+colormap = colormap.astype(np.uint8)
 
 
 def infer(model, image_tensor):
@@ -283,10 +278,6 @@ def infer(model, image_tensor):
 
 
 def decode_segmentation_masks(mask, colormap, n_classes):
-    unique_classes = np.unique(mask)
-    print(f"Unique classes in mask: {unique_classes}")
-    print(f"Number of classes in colormap: {colormap.shape[0]}")
-
     r = np.zeros_like(mask).astype(np.uint8)
     g = np.zeros_like(mask).astype(np.uint8)
     b = np.zeros_like(mask).astype(np.uint8)
@@ -320,7 +311,7 @@ def plot_predictions(images_list, colormap, model):
     for image_file in images_list:
         image_tensor = read_image(image_file)
         prediction_mask = infer(image_tensor=image_tensor, model=model)
-        prediction_colormap = decode_segmentation_masks(prediction_mask, colormap, NUM_CLASSES)
+        prediction_colormap = decode_segmentation_masks(prediction_mask, colormap, 20)
         overlay = get_overlay(image_tensor, prediction_colormap)
         plot_samples_matplotlib(
             [image_tensor, overlay, prediction_colormap], figsize=(18, 14)
@@ -331,6 +322,7 @@ def plot_predictions(images_list, colormap, model):
 ### Inference on Train Images
 """
 colors=np.load('Pole_color.npy')
+
 plot_predictions(train_images[:4], colors, model=model)
 
 """
